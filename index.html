@@ -101,19 +101,18 @@ const music = document.getElementById("music");
 window.addEventListener("click", () => {
     if (music.muted) music.muted = false;
 });
+    
 const t1input = document.getElementById("t1input");
 const t2input = document.getElementById("t2input");
 const resetBtn = document.getElementById("reset");
-const music = document.getElementById("music");
+    
 resetBtn.onclick = () => {
     t1 = parseFloat(t1input.value);
     t2 = parseFloat(t2input.value);
     w1 = parseFloat(w1input.value);
     w2 = parseFloat(w2input.value);
     trail = [];
-    
-    music.play();
-  
+
 };
 
 const canvas = document.getElementById("canvas");
