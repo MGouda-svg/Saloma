@@ -67,11 +67,23 @@ h1 {
   <button id="reset">Back to Love 💖</button>
 </div>
     
-<audio id="music" src="salma.mp3" loop autoplay muted></audio>
+<audio id="music" src="salma.mp3" loop muted></audio>
     
 <canvas id="canvas"></canvas>
 
 <script>
+const music = document.getElementById("music");
+
+// Check if URL contains playmusic=1
+const urlParams = new URLSearchParams(window.location.search);
+const playMusic = urlParams.get("playmusic");
+
+if (playMusic && music) {
+    music.muted = false;      // unmute
+    music.currentTime = 0;    // start from beginning
+    music.play();             // play music
+}
+
 let hearts = [];
 
 function spawnHeart() {
@@ -95,11 +107,6 @@ function drawHeart(x, y, size) {
     ctx.bezierCurveTo(x + size*1.5, y + size/2, x + size, y - size, x, y);
     ctx.fill();
 }
-
-const music = document.getElementById("music");
-window.addEventListener("click", () => {
-    if (music.muted) music.muted = false;
-});
     
 const t1input = document.getElementById("t1input");
 const t2input = document.getElementById("t2input");
