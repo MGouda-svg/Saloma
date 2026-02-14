@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Double Pendulum</title>
+
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    background: #ffd6e8;
+    overflow: hidden;
+}
+canvas {
+    display: block;
+}
+h1 {
+    position: fixed;
+    top: 10px;
+    left: 20px;
+    color: white;
+    font-family: Arial;
+    z-index: 10;
+}
+
+#ui {
+    position: fixed;
+    top: 15px;
+    right: 20px;
+    color: #b30059;
+    font-family: "Comic Sans MS", "Segoe UI", cursive;
+    background: rgba(255, 240, 245, 0.9);
+    padding: 12px;
+    border-radius: 15px;
+    box-shadow: 0 0 15px rgba(255,105,180,0.8);
+}
+#ui input {
+    width: 70px;
+    border-radius: 8px;
+    border: 2px solid #ff69b4;
+    padding: 4px;
+    color: #b30059;
+}
+#ui button {
+    background: #ff69b4;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 6px 12px;
+    cursor: pointer;
+}
+#ui button:hover {
+    background: #ff1493;
+}
+
+</style>
+</head>
+
+<body>
+<audio id="music" src="https://docs.google.com/uc?export=download&id=1qBFy3oM7QtG-P8joFUIqxvkyzvr_gPh1" loop autoplay muted></audio>
+<h1>Double Pendulum</h1>
+<div id="ui">
+  <input id="t1input" type="number" step="0.01" value="2.452994" hidden>
+  <input id="t2input" type="number" step="0.01" value="-2.7727059" hidden>
+  <input id="w1input" type="number" step="0.01" value="0.01" hidden>
+  <input id="w2input" type="number" step="0.01" value="0.00" hidden>
+  <button id="reset">Back to Love 💖</button>
+</div>
+
+
+
+<canvas id="canvas"></canvas>
+
+<script>
+let hearts = [];
+
+function spawnHeart() {
+    hearts.push({
+        x: Math.random() * canvas.width,
+        y: canvas.height + 30,
+        size: 10 + Math.random() * 20,
+        speed: 0.5 + Math.random() * 1.5,
+        sway: Math.random() * 2,
+        phase: Math.random() * Math.PI * 2
+    });
+}
+
+setInterval(spawnHeart, 300);
+
+function drawHeart(x, y, size) {
+    ctx.fillStyle = "#ff2e63";
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.bezierCurveTo(x - size, y - size, x - size*1.5, y + size/2, x, y + size);
+    ctx.bezierCurveTo(x + size*1.5, y + size/2, x + size, y - size, x, y);
+    ctx.fill();
+}
+
+
+const t1input = document.getElementById("t1input");
+const t2input = document.getElementById("t2input");
+const resetBtn = document.getElementById("reset");
+const music = document.getElementById("music");
+resetBtn.onclick = () => {
+    t1 = parseFloat(t1input.value);
+    t2 = parseFloat(t2input.value);
+    w1 = parseFloat(w1input.value);
+    w2 = parseFloat(w2input.value);
+    trail = [];
+    
+    music.play();
+  
+};
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+// Physics constants
+let g = 9.81;
+let L1 = 150;
+let L2 = 150;
+let m1 = 1000;
+let m2 = 1000;
+
+// Initial state
+let t1 = 2.452994;
+let t2 = -2.7727059;
+let w1 = 0.01;
+let w2 = 0.00;
+
+// Speed control
+let dt = 0.1;
+
+// Trail
+let trail = [];
+let maxTrail = 400;
+
+function derivatives(state) {
+    let t1 = state.t1;
+    let t2 = state.t2;
+    let w1 = state.w1;
+    let w2 = state.w2;
+
+    let num1 = -g * (2*m1 + m2) * Math.sin(t1);
+    let num2 = -m2 * g * Math.sin(t1 - 2*t2);
+    let num3 = -2 * Math.sin(t1 - t2) * m2;
+    let num4 = w2*w2 * L2 + w1*w1 * L1 * Math.cos(t1 - t2);
+    let den1 = L1 * (2*m1 + m2 - m2 * Math.cos(2*t1 - 2*t2));
+    let a1 = (num1 + num2 + num3*num4) / den1;
+
+    let num5 = 2 * Math.sin(t1 - t2);
+    let num6 = w1*w1 * L1 * (m1 + m2);
+    let num7 = g * (m1 + m2) * Math.cos(t1);
+    let num8 = w2*w2 * L2 * m2 * Math.cos(t1 - t2);
+    let den2 = L2 * (2*m1 + m2 - m2 * Math.cos(2*t1 - 2*t2));
+    let a2 = (num5 * (num6 + num7 + num8)) / den2;
+
+    return {
+        dt1: w1,
+        dt2: w2,
+        dw1: a1,
+        dw2: a2
+    };
+}
+
+function rk4Step() {
+    let s = {t1, t2, w1, w2};
+
+    let k1 = derivatives(s);
+
+    let k2 = derivatives({
+        t1: s.t1 + k1.dt1 * dt/2,
+        t2: s.t2 + k1.dt2 * dt/2,
+        w1: s.w1 + k1.dw1 * dt/2,
+        w2: s.w2 + k1.dw2 * dt/2
+    });
+
+    let k3 = derivatives({
+        t1: s.t1 + k2.dt1 * dt/2,
+        t2: s.t2 + k2.dt2 * dt/2,
+        w1: s.w1 + k2.dw1 * dt/2,
+        w2: s.w2 + k2.dw2 * dt/2
+    });
+
+    let k4 = derivatives({
+        t1: s.t1 + k3.dt1 * dt,
+        t2: s.t2 + k3.dt2 * dt,
+        w1: s.w1 + k3.dw1 * dt,
+        w2: s.w2 + k3.dw2 * dt
+    });
+
+    t1 += (dt/6)*(k1.dt1 + 2*k2.dt1 + 2*k3.dt1 + k4.dt1);
+    t2 += (dt/6)*(k1.dt2 + 2*k2.dt2 + 2*k3.dt2 + k4.dt2);
+    w1 += (dt/6)*(k1.dw1 + 2*k2.dw1 + 2*k3.dw1 + k4.dw1);
+    w2 += (dt/6)*(k1.dw2 + 2*k2.dw2 + 2*k3.dw2 + k4.dw2);
+}
+
+
+function draw() {
+  // Hearts
+for (let i = hearts.length - 1; i >= 0; i--) {
+    let h = hearts[i];
+    h.y -= h.speed;
+    h.phase += 0.02;
+    h.x += Math.sin(h.phase) * h.sway;
+
+    drawHeart(h.x, h.y, h.size);
+
+    if (h.y < -50) hearts.splice(i,1);
+}
+
+    ctx.fillStyle = "rgba(255,182,193,0.35)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    let x1 = L1 * Math.sin(t1);
+    let y1 = L1 * Math.cos(t1);
+
+    let x2 = x1 + L2 * Math.sin(t2);
+    let y2 = y1 + L2 * Math.cos(t2);
+
+    let cx = canvas.width / 2;
+    let cy = canvas.height*0.45;
+
+    // Store trail
+    trail.push({x: cx + x2, y: cy + y2});
+    if (trail.length > maxTrail) trail.shift();
+
+    // Draw trail
+    ctx.save();
+ctx.shadowBlur = 25;
+ctx.shadowColor = "#ff1493";
+
+ctx.beginPath();
+for (let i = 0; i < trail.length; i++) {
+    ctx.lineTo(trail[i].x, trail[i].y);
+}
+ctx.strokeStyle = "#ff1493";
+ctx.lineWidth = 4;
+ctx.stroke();
+
+ctx.restore();
+
+
+    // Arms
+    ctx.strokeStyle = "#ff69b4";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + x1, cy + y1);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(cx + x1, cy + y1);
+    ctx.lineTo(cx + x2, cy + y2);
+    ctx.stroke();
+
+    // Masses
+    ctx.fillStyle = "#ff2e63";
+    ctx.beginPath();
+    ctx.arc(cx + x1, cy + y1, 10, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = "#ff2e63";
+    ctx.beginPath();
+    ctx.arc(cx + x2, cy + y2, 10, 0, Math.PI*2);
+    ctx.fill();
+}
+
+function animate() {
+    rk4Step();
+    draw();
+    requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+</body>
+</html>
